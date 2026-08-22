@@ -219,6 +219,27 @@
     font-size:2.6rem;
     letter-spacing:1px;
   }
+  .difficulty-chip{
+    display:inline-block;
+    margin-top:8px;
+    padding:5px 11px;
+    border-radius:999px;
+    background:rgba(124,92,252,0.18);
+    border:1px solid rgba(167,139,250,0.45);
+    color:var(--nebula-light);
+    font-size:0.78rem;
+    font-weight:800;
+  }
+  .difficulty-chip.hard{
+    background:rgba(255,107,107,0.13);
+    border-color:rgba(255,107,107,0.45);
+    color:#FF9A9A;
+  }
+  .difficulty-chip.easy{
+    background:rgba(74,222,128,0.12);
+    border-color:rgba(74,222,128,0.4);
+    color:var(--good);
+  }
   .timer-bar-bg{
     height:8px;
     background:rgba(255,255,255,0.08);
@@ -378,6 +399,7 @@
 
       <div class="question-box">
         <div class="question" id="question-text">7 × 8 = ?</div>
+        <div class="difficulty-chip" id="difficulty-chip">Orta seviye · 10 puan</div>
         <div class="timer-bar-bg"><div class="timer-bar" id="timer-bar"></div></div>
       </div>
 
@@ -482,23 +504,55 @@ const TIME_PER_Q = 8000; // ms
 let timeLeft = TIME_PER_Q;
 let answered = false;
 
+const DIFFICULTIES = {
+  easy: { label: 'Çok kolay', points: 5 },
+  medium: { label: 'Orta seviye', points: 10 },
+  hard: { label: 'Zor', points: 20 },
+};
+
+function factorDifficulty(n){
+  if(n===1) return 0;
+  if([2,5,10].includes(n)) return 1;
+  if([3,4].includes(n)) return 2;
+  return 4; // 6, 7, 8 and 9 require the most recall.
+}
+
+function questionDifficultyScore(a,b){
+  return factorDifficulty(a) + factorDifficulty(b) + (a===b ? 1 : 0);
+}
+
+function pickRandom(pool){
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
 function buildQuestions(){
   const pool = [];
   selectedTables.forEach(a=>{
     for(let b=1;b<=10;b++){
-      pool.push([a,b]);
+      pool.push({ a, b, score: questionDifficultyScore(a,b) });
     }
   });
-  // shuffle
-  for(let i=pool.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [pool[i],pool[j]]=[pool[j],pool[i]];
-  }
-  const chosen = [];
-  for(let i=0;i<selectedCount;i++){
-    chosen.push(pool[i % pool.length]);
-  }
-  return chosen;
+  const rankedPool = [...pool].sort((left,right) => left.score-right.score || Math.random()-0.5);
+  const easyEnd = Math.max(1, Math.floor(rankedPool.length*0.2));
+  const hardStart = Math.max(easyEnd+1, Math.ceil(rankedPool.length*0.8));
+  const pools = {
+    easy: rankedPool.slice(0,easyEnd),
+    medium: rankedPool.slice(easyEnd,hardStart),
+    hard: rankedPool.slice(hardStart),
+  };
+  const counts = {
+    easy: Math.round(selectedCount*0.2),
+    hard: Math.round(selectedCount*0.2),
+  };
+  counts.medium = selectedCount-counts.easy-counts.hard;
+
+  const chosen = Object.entries(counts).flatMap(([difficulty,count]) =>
+    Array.from({ length:count }, () => {
+      const { a,b } = pickRandom(pools[difficulty]);
+      return { a,b,difficulty,points:DIFFICULTIES[difficulty].points };
+    })
+  );
+  return shuffleArray(chosen);
 }
 
 function generateChoices(correctAnswer){
@@ -542,8 +596,12 @@ function updateHud(){
 
 function showQuestion(){
   answered = false;
-  const [a,b] = questions[currentIndex];
+  const question = questions[currentIndex];
+  const { a,b,difficulty,points } = question;
   document.getElementById('question-text').textContent = `${a} × ${b} = ?`;
+  const difficultyChip = document.getElementById('difficulty-chip');
+  difficultyChip.textContent = `${DIFFICULTIES[difficulty].label} · ${points} puan`;
+  difficultyChip.className = `difficulty-chip ${difficulty}`;
   document.getElementById('feedback').textContent='';
   document.getElementById('feedback').className='feedback';
   const answersDiv = document.getElementById('answers');
@@ -575,7 +633,10 @@ function startTimer(){
     if(pct<30) bar.style.background='linear-gradient(90deg, #FF6B6B, #FFC857)';
     if(timeLeft<=0){
       clearInterval(timerInterval);
-      if(!answered) handleAnswer(null, questions[currentIndex][0]*questions[currentIndex][1], null);
+      if(!answered){
+        const question = questions[currentIndex];
+        handleAnswer(null, question.a*question.b, null);
+      }
     }
   }, tickMs);
 }
@@ -584,16 +645,18 @@ function handleAnswer(choice, correct, btnEl){
   if(answered) return;
   answered = true;
   clearInterval(timerInterval);
-  const [a,b] = questions[currentIndex];
+  const question = questions[currentIndex];
+  const { a,b } = question;
   const allBtns = document.querySelectorAll('.answer-btn');
   const feedback = document.getElementById('feedback');
 
   if(choice===correct){
-    score += 10 + streak*2;
+    const earnedPoints = question.points + streak*2;
+    score += earnedPoints;
     streak += 1;
     bestStreak = Math.max(bestStreak, streak);
     correctCount += 1;
-    feedback.textContent = pickPraise();
+    feedback.textContent = `${pickPraise()} +${earnedPoints} puan`;
     feedback.className='feedback good';
     if(btnEl) btnEl.classList.add('correct');
   } else {
