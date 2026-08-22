@@ -9,7 +9,9 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-Workflow APK'yi GitHub Releases sayfasina ekler. Uygulama GitHub Pages'taki oyunu yukledigi icin oyun arayuzu ve icerik guncellemeleri otomatik gelir. APK'nin kendisi ancak Android/Capacitor degisikliklerinde yenilenmelidir.
+Workflow APK'yi GitHub Releases sayfasina ekler. Uygulama GitHub Pages'taki oyunu yukledigi icin oyun arayuzu ve icerik guncellemeleri otomatik gelir. Yeni bir APK Release'i ciktiginda uygulama acilisinda kullaniciya guncelleme sorulur; kabul edilirse Android'in kurulum onayina yonlendirilir, reddedilirse hicbir degisiklik yapilmaz.
+
+Her APK guncellemesini `vMAJOR.MINOR.PATCH` bicimindeki artan bir etiketle yayinlayin. Ornek: `v1.0.1`.
 
 ## Bir kerelik GitHub ayarlari
 

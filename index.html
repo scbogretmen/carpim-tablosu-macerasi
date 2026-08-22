@@ -428,6 +428,49 @@
 </div>
 
 <script>
+// ---------- APK guncellemesi ----------
+const UPDATE_API_URL = 'https://api.github.com/repos/scbogretmen/carpim-tablosu-macerasi/releases/latest';
+
+function compareVersions(left, right) {
+  const leftParts = left.replace(/^v/, '').split('.').map(Number);
+  const rightParts = right.replace(/^v/, '').split('.').map(Number);
+  for (let index = 0; index < Math.max(leftParts.length, rightParts.length); index += 1) {
+    const difference = (leftParts[index] || 0) - (rightParts[index] || 0);
+    if (difference) return difference;
+  }
+  return 0;
+}
+
+async function checkForApkUpdate() {
+  const updater = window.Capacitor?.Plugins?.ApkUpdater;
+  if (!updater) return;
+
+  try {
+    const [current, response] = await Promise.all([
+      updater.getVersion(),
+      fetch(UPDATE_API_URL, { cache: 'no-store' }),
+    ]);
+    if (!response.ok) return;
+
+    const release = await response.json();
+    const apk = release.assets?.find((asset) => asset.name.endsWith('.apk'));
+    if (!apk || compareVersions(release.tag_name, current.versionName) <= 0) return;
+
+    const accepted = window.confirm(
+      `Yeni surum hazir: ${release.tag_name}. Simdi indirip guncellemek ister misin?`
+    );
+    if (!accepted) return;
+
+    await updater.downloadAndInstall({ url: apk.browser_download_url });
+  } catch (_) {
+    // Update checks are optional; the game remains usable without a connection.
+  }
+}
+
+window.addEventListener('load', () => {
+  window.setTimeout(checkForApkUpdate, 1200);
+});
+
 // ---------- Starfield background ----------
 const starsContainer = document.getElementById('stars');
 for(let i=0;i<70;i++){
