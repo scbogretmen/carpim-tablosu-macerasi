@@ -1,0 +1,18 @@
+{
+  "name": "carpim-tablosu-macerasi",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "config:remote": "node scripts/configure-android-url.mjs",
+    "web:stage": "node scripts/stage-web.mjs",
+    "android:prepare": "npm run config:remote && npm run web:stage && npx cap sync android",
+    "android:add": "npx cap add android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/core": "^7.4.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.3"
+  }
+}

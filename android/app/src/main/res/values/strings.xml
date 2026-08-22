@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Carpim Macerasi</string>
+    <string name="title_activity_main">Carpim Macerasi</string>
+    <string name="package_name">com.carpimmacerasi.app</string>
+    <string name="custom_url_scheme">com.carpimmacerasi.app</string>
+</resources>
